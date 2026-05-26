@@ -706,6 +706,17 @@
     <string name="text_editor_save_success">Saved</string>
     <string name="text_editor_reload_message">Are you sure you want to reload? Unsaved changes to this document will be lost.</string>
     <string name="text_editor_encoding">Encoding</string>
+    <string name="text_editor_find">Find</string>
+    <string name="text_editor_replace">Replace</string>
+    <string name="text_editor_replace_all">Replace all</string>
+    <string name="text_editor_find_text">Find text</string>
+    <string name="text_editor_replace_with">Replace with</string>
+    <string name="text_editor_go_to_line">Go to line</string>
+    <string name="text_editor_line_number">Line number</string>
+    <string name="text_editor_monospace">Monospace font</string>
+    <string name="text_editor_status_format">Ln %1$d, Col %2$d    %3$s</string>
+    <string name="text_editor_not_found">Not found</string>
+    <string name="text_editor_replaced_count_format">Replaced %1$d occurrence(s)</string>
     <string name="text_editor_close_message">Are you sure you want to discard unsaved changes to this document?</string>
 
     <string name="ftp_server_title">FTP server</string>

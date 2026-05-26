@@ -33,7 +33,6 @@ import me.zhanghai.android.files.util.isReady
 import me.zhanghai.android.files.util.toError
 import me.zhanghai.android.files.util.toLoading
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 
 class TextEditorViewModel(file: Path) : ViewModel() {
     private val _file = MutableStateFlow(file)
@@ -83,6 +82,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                 file.readAllBytes()
             }
             currentCoroutineContext().ensureActive()
+            encoding.value = TextEncoding.detect(bytes)
             _bytesState.value = DataState.Success(bytes)
         } catch (e: CancellationException) {
             e.printStackTrace()
@@ -91,7 +91,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
         }
     }
 
-    val encoding = MutableStateFlow(StandardCharsets.UTF_8)
+    val encoding = MutableStateFlow(TextEncoding.UTF_8)
 
     private val _textState = MutableStateFlow<DataState<String>>(DataState.Loading())
     val textState = _textState.asStateFlow()
@@ -106,7 +106,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                             _textState.value = _textState.value.toLoading()
                             try {
                                 val text = withContext(Dispatchers.Default) {
-                                    String(bytesState.data, encoding)
+                                    encoding.decode(bytesState.data)
                                 }
                                 currentCoroutineContext().ensureActive()
                                 _textState.value = DataState.Success(text)
@@ -135,7 +135,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
             val argument = path to text
             _writeFileState.value = ActionState.Running(argument)
             val bytes = withContext(Dispatchers.Default) {
-                text.toByteArray(encoding.value)
+                encoding.value.encode(text)
             }
             FileJobService.write(path, bytes, context) { successful ->
                 if (successful) {
