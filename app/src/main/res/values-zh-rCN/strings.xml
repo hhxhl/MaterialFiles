@@ -562,6 +562,17 @@
     <string name="text_editor_save_success">已保存</string>
     <string name="text_editor_reload_message">您确定要重新加载吗？对此文档未保存的变更将丢失。</string>
     <string name="text_editor_encoding">编码</string>
+    <string name="text_editor_find">查找</string>
+    <string name="text_editor_replace">替换</string>
+    <string name="text_editor_replace_all">全部替换</string>
+    <string name="text_editor_find_text">查找文本</string>
+    <string name="text_editor_replace_with">替换为</string>
+    <string name="text_editor_go_to_line">跳转到行</string>
+    <string name="text_editor_line_number">行号</string>
+    <string name="text_editor_monospace">等宽字体</string>
+    <string name="text_editor_position_format">第 %1$d 行，第 %2$d 列</string>
+    <string name="text_editor_not_found">未找到</string>
+    <string name="text_editor_replaced_count_format">已替换 %1$d 处</string>
     <string name="text_editor_close_message">您确定要舍弃对此文档未保存的变更吗？</string>
 
     <string name="ftp_server_title">FTP 服务器</string>
