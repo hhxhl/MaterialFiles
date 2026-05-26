@@ -1,4 +1,4 @@
-name: Build MateriaFiles
+name: Build MaterialFiles
 
 on:
   push:
