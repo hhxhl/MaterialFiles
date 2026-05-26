@@ -44,7 +44,7 @@ class OpenFileActivity : AppActivity() {
     }
 
     companion object {
-        private const val ACTION_OPEN_FILE = "me.zhanghai.android.files.intent.action.OPEN_FILE"
+        private const val ACTION_OPEN_FILE = "com.hhxhl.files.intent.action.OPEN_FILE"
 
         fun createIntent(path: Path, mimeType: MimeType): Intent =
             Intent(ACTION_OPEN_FILE)

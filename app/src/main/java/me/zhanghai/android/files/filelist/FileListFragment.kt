@@ -1624,7 +1624,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     companion object {
         private const val ACTION_VIEW_DOWNLOADS =
-            "me.zhanghai.android.files.intent.action.VIEW_DOWNLOADS"
+            "com.hhxhl.files.intent.action.VIEW_DOWNLOADS"
 
         private const val IMAGE_VIEWER_ACTIVITY_PATH_LIST_SIZE_MAX = 1000
     }

@@ -22,11 +22,7 @@ lateinit var rootContext: Context private set
 
 object RootFileService : RemoteFileService(
     RemoteInterface {
-        if (SuiFileServiceLauncher.isSuiAvailable()) {
-            SuiFileServiceLauncher.launchService()
-        } else {
-            LibSuFileServiceLauncher.launchService()
-        }
+        LibSuFileServiceLauncher.launchService()
     }
 ) {
     const val TIMEOUT_MILLIS = 15 * 1000L
