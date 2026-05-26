@@ -4,10 +4,7 @@ on:
   push:
     branches:
       - dev
-
-  pull_request:
-    branches:
-      - dev
+      - master
 
   workflow_dispatch:
 
@@ -33,21 +30,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Decode Keystore
-        run: |
-          printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "${{ github.workspace }}/release.jks"
-          ls -lh "${{ github.workspace }}/release.jks"
-
-      - name: Check signing secrets
+      - name: Decode keystore
         env:
-          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          test -f "${{ github.workspace }}/release.jks"
-          test -n "$STORE_PASSWORD"
-          test -n "$KEY_ALIAS"
-          test -n "$KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "${{ github.workspace }}/release.jks"
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
@@ -58,18 +45,16 @@ jobs:
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease
 
       - name: Copy release APK
         run: |
           mkdir -p out
           cp app/build/outputs/apk/release/app-release.apk out/Files-release.apk
-          ls -lh out/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Files-release
           path: out/Files-release.apk
-          if-no-files-found: error
           retention-days: 10
