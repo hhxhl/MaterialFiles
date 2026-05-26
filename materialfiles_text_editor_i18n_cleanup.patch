@@ -1,0 +1,44 @@
+diff --git a/app/src/main/res/menu/text_editor.xml b/app/src/main/res/menu/text_editor.xml
+index 8c4d7aa1..a4f95ab2 100644
+--- a/app/src/main/res/menu/text_editor.xml
++++ b/app/src/main/res/menu/text_editor.xml
+@@ -18,7 +18,7 @@
+         android:id="@+id/action_undo"
+         android:icon="@drawable/undo_icon_control_normal_24dp"
+         android:orderInCategory="15"
+-        android:title="Undo"
++        android:title="@string/text_editor_undo"
+         app:showAsAction="ifRoom" />
+
+     <item
+@@ -27,7 +27,7 @@
+         android:id="@+id/action_redo"
+         android:icon="@drawable/redo_icon_control_normal_24dp"
+         android:orderInCategory="16"
+-        android:title="Redo"
++        android:title="@string/text_editor_redo"
+         app:showAsAction="ifRoom" />
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index 0f4c3b8f..8a7f92cd 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -520,6 +520,9 @@
+     <string name="text_editor_save">Save</string>
+     <string name="text_editor_reload">Reload</string>
+
++    <string name="text_editor_undo">Undo</string>
++    <string name="text_editor_redo">Redo</string>
++
+ </resources>
+diff --git a/app/src/main/res/values-zh-rCN/strings.xml b/app/src/main/res/values-zh-rCN/strings.xml
+index 63f7f5f2..2d79db11 100644
+--- a/app/src/main/res/values-zh-rCN/strings.xml
++++ b/app/src/main/res/values-zh-rCN/strings.xml
+@@ -480,6 +480,9 @@
+     <string name="text_editor_save">保存</string>
+     <string name="text_editor_reload">重新加载</string>
+
++    <string name="text_editor_undo">撤销</string>
++    <string name="text_editor_redo">恢复</string>
++
+ </resources>
