@@ -21,7 +21,10 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
+import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -115,6 +118,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         // TODO: Move reload-prevent here so that we can also handle save-as, etc. Or maybe just get
         //  rid of the mPathLiveData in TextEditorViewModel.
         ThemedFastScroller.create(binding.scrollView)
+        setupEditorWindowInsets()
         // Manually save and restore state in view model to avoid TransactionTooLargeException.
         binding.textEdit.isSaveEnabled = false
         val textEditSavedState = viewModel.removeEditTextSavedState()
@@ -144,6 +148,21 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         updateStatusText()
 
         // TODO: Request storage permission if not granted.
+    }
+
+
+    private fun setupEditorWindowInsets() {
+        val initialPaddingBottom = binding.editorContainer.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(binding.editorContainer) { view, insets ->
+            val navigationBarsBottom = insets
+                .getInsets(WindowInsetsCompat.Type.navigationBars())
+                .bottom
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val imeExtraBottom = (imeBottom - navigationBarsBottom).coerceAtLeast(0)
+            view.updatePadding(bottom = initialPaddingBottom + imeExtraBottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.editorContainer)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
