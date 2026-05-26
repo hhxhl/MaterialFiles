@@ -20,6 +20,61 @@ import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.util.startActivitySafe
 
 class OpenFileActivity : AppActivity() {
+
+    private val TEXT_FILE_EXTENSIONS = setOf(
+        "txt",
+        "text",
+        "log",
+
+        "conf",
+        "config",
+        "cfg",
+        "ini",
+        "env",
+        "prop",
+        "properties",
+        "toml",
+
+        "json",
+        "xml",
+        "yaml",
+        "yml",
+
+        "md",
+        "markdown",
+
+        "sh",
+        "bash",
+        "zsh",
+        "fish",
+        "rc",
+
+        "mk",
+        "bp",
+        "te",
+
+        "gradle",
+        "pro",
+
+        "java",
+        "kt",
+        "kts",
+        "c",
+        "cc",
+        "cpp",
+        "h",
+        "hpp",
+        "rs",
+        "py",
+        "js",
+        "ts",
+        "css",
+        "scss",
+        "html",
+
+        "csv"
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -32,19 +87,33 @@ class OpenFileActivity : AppActivity() {
         finish()
     }
 
+    private fun isTextFileByExtension(path: Path): Boolean {
+        val extension = path.fileName.toString()
+            .substringAfterLast('.', "")
+            .lowercase()
+        return extension in TEXT_FILE_EXTENSIONS
+    }
+
     private fun openFile(path: Path, mimeType: MimeType) {
         if (path.isArchivePath) {
             FileJobService.open(path, mimeType, false, this)
         } else {
             val intent = path.fileProviderUri.createViewIntent(mimeType)
                 .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                .apply { extraPath = path }
+                .apply {
+                    if (mimeType.value.startsWith("text/")
+                        || isTextFileByExtension(path)) {
+                        setPackage(packageName)
+                    }
+                    extraPath = path
+                }
             startActivitySafe(intent)
         }
     }
 
     companion object {
-        private const val ACTION_OPEN_FILE = "com.hhxhl.files.intent.action.OPEN_FILE"
+        private const val ACTION_OPEN_FILE =
+            "com.hhxhl.files.intent.action.OPEN_FILE"
 
         fun createIntent(path: Path, mimeType: MimeType): Intent =
             Intent(ACTION_OPEN_FILE)
