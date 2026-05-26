@@ -4,12 +4,10 @@ on:
   push:
     branches:
       - dev
-      - main
 
   pull_request:
     branches:
       - dev
-      - main
 
   workflow_dispatch:
 
@@ -45,11 +43,11 @@ jobs:
 
       - name: Build signed release APK
         env:
-          STORE_FILE: release.jks
+          STORE_FILE: ${{ github.workspace }}/release.jks
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --stacktrace
 
       - name: Copy release APK
         run: |
