@@ -152,17 +152,20 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
 
     private fun setupEditorWindowInsets() {
-        val initialPaddingBottom = binding.editorContainer.paddingBottom
-        ViewCompat.setOnApplyWindowInsetsListener(binding.editorContainer) { view, insets ->
+        val initialScrollPaddingBottom = binding.scrollView.paddingBottom
+        val initialStatusPaddingBottom = binding.statusText.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val navigationBarsBottom = insets
                 .getInsets(WindowInsetsCompat.Type.navigationBars())
                 .bottom
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            val imeExtraBottom = (imeBottom - navigationBarsBottom).coerceAtLeast(0)
-            view.updatePadding(bottom = initialPaddingBottom + imeExtraBottom)
+            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            val bottomInset = if (imeVisible) imeBottom else navigationBarsBottom
+            binding.scrollView.updatePadding(bottom = initialScrollPaddingBottom + bottomInset)
+            binding.statusText.updatePadding(bottom = initialStatusPaddingBottom + bottomInset)
             insets
         }
-        ViewCompat.requestApplyInsets(binding.editorContainer)
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
