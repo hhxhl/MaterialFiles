@@ -8,7 +8,9 @@ package me.zhanghai.android.files.viewer.text
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -25,7 +27,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.core.view.updatePadding
-import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -63,6 +64,12 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private var isSettingText = false
     private var lastFindText = ""
     private var isMonospace = false
+
+    private val undoStack = ArrayDeque<EditOperation>()
+    private val redoStack = ArrayDeque<EditOperation>()
+    private var pendingEditOperation: PendingEditOperation? = null
+    private var isApplyingEditHistory = false
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -125,17 +132,66 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         if (textEditSavedState != null) {
             binding.textEdit.onRestoreInstanceState(textEditSavedState)
         }
-        binding.textEdit.doAfterTextChanged {
-            if (isSettingText) {
-                return@doAfterTextChanged
+        binding.textEdit.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+                if (isSettingText || isApplyingEditHistory) {
+                    pendingEditOperation = null
+                    return
+                }
+                pendingEditOperation = PendingEditOperation(
+                    start,
+                    s.subSequence(start, start + count).toString(),
+                    binding.textEdit.selectionStart,
+                    binding.textEdit.selectionEnd
+                )
             }
-            // Might happen if the animation is running and user is quick enough.
-            if (viewModel.textState.value !is DataState.Success) {
-                return@doAfterTextChanged
+
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+                if (isSettingText || isApplyingEditHistory) {
+                    return
+                }
+                val pending = pendingEditOperation ?: return
+                pending.after = s.subSequence(start, start + count).toString()
             }
-            viewModel.isTextChanged.value = true
-            updateStatusText()
-        }
+
+            override fun afterTextChanged(s: Editable) {
+                if (isSettingText) {
+                    return
+                }
+                if (isApplyingEditHistory) {
+                    updateStatusText()
+                    updateUndoRedoMenuItems()
+                    return
+                }
+                // Might happen if the animation is running and user is quick enough.
+                if (viewModel.textState.value !is DataState.Success) {
+                    pendingEditOperation = null
+                    return
+                }
+                val pending = pendingEditOperation
+                pendingEditOperation = null
+                if (pending != null && (pending.before.isNotEmpty() || pending.after.isNotEmpty())) {
+                    undoStack.addLast(
+                        EditOperation(
+                            pending.start,
+                            pending.before,
+                            pending.after,
+                            pending.selectionStart,
+                            pending.selectionEnd,
+                            binding.textEdit.selectionStart,
+                            binding.textEdit.selectionEnd
+                        )
+                    )
+                    while (undoStack.size > MAX_EDIT_HISTORY_SIZE) {
+                        undoStack.removeFirst()
+                    }
+                    redoStack.clear()
+                }
+                viewModel.isTextChanged.value = true
+                updateStatusText()
+                updateUndoRedoMenuItems()
+            }
+        })
         binding.textEdit.setOnClickListener { updateStatusText() }
         binding.textEdit.setOnFocusChangeListener { _, _ -> updateStatusText() }
         @Suppress("ClickableViewAccessibility")
@@ -184,12 +240,21 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         super.onPrepareOptionsMenu(menu)
 
         updateSaveMenuItem()
+        updateUndoRedoMenuItems()
         updateEncodingMenuItems()
         updateMonospaceMenuItem()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean =
         when (item.itemId) {
+            R.id.action_undo -> {
+                undo()
+                true
+            }
+            R.id.action_redo -> {
+                redo()
+                true
+            }
             R.id.action_save -> {
                 save()
                 true
@@ -280,6 +345,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.textEdit.setText(text)
         isSettingText = false
         viewModel.isTextChanged.value = false
+        clearEditHistory()
         binding.textEdit.post { updateStatusText() }
     }
 
@@ -335,6 +401,55 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             return
         }
         menuBinding.saveItem.isEnabled = viewModel.writeFileState.value.isReady
+    }
+
+    private fun undo() {
+        val operation = undoStack.removeLastOrNull() ?: return
+        applyEditOperation(operation, undo = true)
+        redoStack.addLast(operation)
+        viewModel.isTextChanged.value = true
+        updateUndoRedoMenuItems()
+    }
+
+    private fun redo() {
+        val operation = redoStack.removeLastOrNull() ?: return
+        applyEditOperation(operation, undo = false)
+        undoStack.addLast(operation)
+        viewModel.isTextChanged.value = true
+        updateUndoRedoMenuItems()
+    }
+
+    private fun applyEditOperation(operation: EditOperation, undo: Boolean) {
+        val editable = binding.textEdit.text ?: return
+        val replacement = if (undo) operation.before else operation.after
+        val replacedLength = if (undo) operation.after.length else operation.before.length
+        val start = operation.start.coerceIn(0, editable.length)
+        val end = (start + replacedLength).coerceIn(start, editable.length)
+        isApplyingEditHistory = true
+        editable.replace(start, end, replacement)
+        val selectionStart = if (undo) operation.beforeSelectionStart else operation.afterSelectionStart
+        val selectionEnd = if (undo) operation.beforeSelectionEnd else operation.afterSelectionEnd
+        binding.textEdit.setSelection(
+            selectionStart.coerceIn(0, editable.length),
+            selectionEnd.coerceIn(0, editable.length)
+        )
+        isApplyingEditHistory = false
+        updateStatusText()
+    }
+
+    private fun clearEditHistory() {
+        undoStack.clear()
+        redoStack.clear()
+        pendingEditOperation = null
+        updateUndoRedoMenuItems()
+    }
+
+    private fun updateUndoRedoMenuItems() {
+        if (!this::menuBinding.isInitialized) {
+            return
+        }
+        menuBinding.undoItem.isEnabled = undoStack.isNotEmpty()
+        menuBinding.redoItem.isEnabled = redoStack.isNotEmpty()
     }
 
     private fun showFindDialog() {
@@ -517,12 +632,30 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             line = 1
             column = selection + 1
         }
-        binding.statusText.text = getString(
-            R.string.text_editor_status_format,
-            line,
-            column,
-            viewModel.encoding.value.displayName
-        )
+        binding.positionText.text = getString(R.string.text_editor_position_format, line, column)
+        binding.encodingText.text = viewModel.encoding.value.displayName
+    }
+
+    private data class PendingEditOperation(
+        val start: Int,
+        val before: String,
+        val selectionStart: Int,
+        val selectionEnd: Int,
+        var after: String = ""
+    )
+
+    private data class EditOperation(
+        val start: Int,
+        val before: String,
+        val after: String,
+        val beforeSelectionStart: Int,
+        val beforeSelectionEnd: Int,
+        val afterSelectionStart: Int,
+        val afterSelectionEnd: Int
+    )
+
+    companion object {
+        private const val MAX_EDIT_HISTORY_SIZE = 100
     }
 
     @Parcelize
@@ -530,6 +663,8 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private class MenuBinding private constructor(
         val menu: Menu,
+        val undoItem: MenuItem,
+        val redoItem: MenuItem,
         val saveItem: MenuItem,
         val monospaceItem: MenuItem,
         val encodingSubMenu: SubMenu
@@ -546,6 +681,8 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 encodingSubMenu.setGroupCheckable(Menu.NONE, true, true)
                 return MenuBinding(
                     menu,
+                    menu.findItem(R.id.action_undo),
+                    menu.findItem(R.id.action_redo),
                     menu.findItem(R.id.action_save),
                     menu.findItem(R.id.action_monospace),
                     encodingSubMenu

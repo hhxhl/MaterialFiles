@@ -6,6 +6,8 @@
   -->
 
 <resources>
+    <string name="undo">復原</string>
+    <string name="redo">重做</string>
 
     <string name="app_name">檔案管理</string>
 

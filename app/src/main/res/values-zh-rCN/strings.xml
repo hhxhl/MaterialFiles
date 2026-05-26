@@ -6,6 +6,8 @@
   -->
 
 <resources>
+    <string name="undo">撤销</string>
+    <string name="redo">恢复</string>
 
     <string name="app_name">文件管理</string>
 

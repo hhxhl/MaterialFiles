@@ -6,6 +6,8 @@
   -->
 
 <resources>
+    <string name="undo">Undo</string>
+    <string name="redo">Redo</string>
 
     <string name="app_name">Files Manager</string>
 
@@ -715,6 +717,7 @@
     <string name="text_editor_line_number">Line number</string>
     <string name="text_editor_monospace">Monospace font</string>
     <string name="text_editor_status_format">Ln %1$d, Col %2$d    %3$s</string>
+    <string name="text_editor_position_format">Ln %1$d, Col %2$d</string>
     <string name="text_editor_not_found">Not found</string>
     <string name="text_editor_replaced_count_format">Replaced %1$d occurrence(s)</string>
     <string name="text_editor_close_message">Are you sure you want to discard unsaved changes to this document?</string>
