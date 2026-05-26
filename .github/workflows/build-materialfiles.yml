@@ -35,30 +35,32 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Build APK
-        run: ./gradlew assembleRelease
-
       - name: Decode Keystore
         run: |
           printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.jks
           ls -lh release.jks
 
-      - name: Sign APK
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build signed release APK
+        env:
+          STORE_FILE: release.jks
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Copy release APK
         run: |
-          $ANDROID_HOME/build-tools/35.0.0/apksigner sign \
-          --ks release.jks \
-          --ks-pass pass:${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
-          --ks-key-alias ${{ secrets.ANDROID_KEY_ALIAS }} \
-          --key-pass pass:${{ secrets.ANDROID_KEY_PASSWORD }} \
-          --out app/build/outputs/apk/release/Files-release.apk \
-          app/build/outputs/apk/release/app-release-unsigned.apk
+          mkdir -p out
+          cp app/build/outputs/apk/release/app-release.apk out/Files-release.apk
+          ls -lh out/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Files-release
-          path: app/build/outputs/apk/release/Files-release.apk
+          path: out/Files-release.apk
+          if-no-files-found: error
           retention-days: 10
