@@ -211,6 +211,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val initialScrollPaddingBottom = binding.scrollView.paddingBottom
         val initialStatusPaddingBottom = binding.statusText.paddingBottom
         var lastBottomInset = 0
+        var wasImeVisible = false
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val navigationBarsBottom = insets
                 .getInsets(WindowInsetsCompat.Type.navigationBars())
@@ -234,8 +235,11 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                         binding.scrollView.scrollBy(0, scrollDelta)
                     }
                 }
+            } else if (wasImeVisible && !imeVisible) {
+                binding.scrollView.post { clampScrollViewToContent() }
             }
             lastBottomInset = bottomInset
+            wasImeVisible = imeVisible
             insets
         }
         ViewCompat.requestApplyInsets(binding.root)
@@ -261,6 +265,16 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val selection = binding.textEdit.selectionEnd.coerceAtLeast(0)
         val line = layout.getLineForOffset(selection)
         return layout.getLineBottom(line) - layout.getLineTop(line)
+    }
+
+    private fun clampScrollViewToContent() {
+        val child = binding.scrollView.getChildAt(0) ?: return
+        val maxScrollY = (child.height + binding.scrollView.paddingTop +
+            binding.scrollView.paddingBottom - binding.scrollView.height)
+            .coerceAtLeast(0)
+        if (binding.scrollView.scrollY > maxScrollY) {
+            binding.scrollView.scrollTo(binding.scrollView.scrollX, maxScrollY)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
