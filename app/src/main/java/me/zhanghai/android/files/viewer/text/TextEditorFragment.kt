@@ -222,7 +222,18 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             binding.scrollView.updatePadding(bottom = initialScrollPaddingBottom + bottomInset)
             binding.statusText.updatePadding(bottom = initialStatusPaddingBottom + bottomInset)
             if (imeVisible && bottomInsetDelta > 0) {
-                binding.scrollView.post { binding.scrollView.scrollBy(0, bottomInsetDelta) }
+                binding.scrollView.post {
+                    val layout = binding.textEdit.layout ?: return@post
+                    val selection = binding.textEdit.selectionEnd.coerceAtLeast(0)
+                    val line = layout.getLineForOffset(selection)
+                    val cursorBottom = binding.textEdit.top + binding.textEdit.compoundPaddingTop +
+                        layout.getLineBottom(line)
+                    val visibleBottom = binding.scrollView.scrollY + binding.scrollView.height -
+                        binding.scrollView.paddingBottom
+                    if (cursorBottom > visibleBottom) {
+                        binding.scrollView.scrollBy(0, bottomInsetDelta)
+                    }
+                }
             }
             lastBottomInset = bottomInset
             insets
