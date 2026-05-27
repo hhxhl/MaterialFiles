@@ -24,6 +24,7 @@ import android.widget.LinearLayout
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.core.view.updatePadding
@@ -212,6 +213,24 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val initialStatusPaddingBottom = binding.statusText.paddingBottom
         var lastBottomInset = 0
         var wasImeVisible = false
+        var pendingImeHideAdjustment = false
+        ViewCompat.setWindowInsetsAnimationCallback(
+            binding.root,
+            object : WindowInsetsAnimationCompat.Callback(
+                WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE
+            ) {
+                override fun onEnd(animation: WindowInsetsAnimationCompat) {
+                    if (!pendingImeHideAdjustment) {
+                        return
+                    }
+                    pendingImeHideAdjustment = false
+                    binding.scrollView.post {
+                        clampScrollViewToContent()
+                        keepCursorAboveEditorBottom()
+                    }
+                }
+            }
+        )
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val navigationBarsBottom = insets
                 .getInsets(WindowInsetsCompat.Type.navigationBars())
@@ -236,10 +255,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                     }
                 }
             } else if (wasImeVisible && !imeVisible) {
-                binding.scrollView.postOnAnimation {
-                    clampScrollViewToContent()
-                    keepCursorAboveEditorBottom()
-                }
+                pendingImeHideAdjustment = true
             }
             lastBottomInset = bottomInset
             wasImeVisible = imeVisible
