@@ -218,23 +218,17 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
             val bottomInset = if (imeVisible) imeBottom else navigationBarsBottom
-            val bottomInsetDelta = bottomInset - lastBottomInset
-            val keepCursorDistanceToEditorBottom = imeVisible && bottomInsetDelta > 0
-            val cursorDistanceToEditorBottom = if (keepCursorDistanceToEditorBottom) {
-                getEditorBottomInWindow() - getCursorBottomInWindow()
-            } else {
-                0
-            }
+            val shouldAdjustCursor = imeVisible && bottomInset > lastBottomInset
             binding.scrollView.updatePadding(bottom = initialScrollPaddingBottom + bottomInset)
             binding.statusText.updatePadding(bottom = initialStatusPaddingBottom + bottomInset)
-            if (keepCursorDistanceToEditorBottom) {
+            if (shouldAdjustCursor) {
                 binding.scrollView.post {
                     val editorBottom = getEditorBottomInWindow()
                     val cursorBottom = getCursorBottomInWindow()
                     if (cursorBottom <= editorBottom) {
                         return@post
                     }
-                    val desiredCursorBottom = editorBottom - cursorDistanceToEditorBottom
+                    val desiredCursorBottom = editorBottom - 2 * getCursorLineHeight()
                     val scrollDelta = cursorBottom - desiredCursorBottom
                     if (scrollDelta > 0) {
                         binding.scrollView.scrollBy(0, scrollDelta)
@@ -260,6 +254,13 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val location = IntArray(2)
         binding.textEdit.getLocationInWindow(location)
         return location[1] + binding.textEdit.compoundPaddingTop + layout.getLineBottom(line)
+    }
+
+    private fun getCursorLineHeight(): Int {
+        val layout = binding.textEdit.layout ?: return binding.textEdit.lineHeight
+        val selection = binding.textEdit.selectionEnd.coerceAtLeast(0)
+        val line = layout.getLineForOffset(selection)
+        return layout.getLineBottom(line) - layout.getLineTop(line)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
