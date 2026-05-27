@@ -236,7 +236,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                     }
                 }
             } else if (wasImeVisible && !imeVisible) {
-                binding.scrollView.post { clampScrollViewToContent() }
+                binding.scrollView.post {
+                    clampScrollViewToContent()
+                    keepCursorAboveEditorBottom()
+                }
             }
             lastBottomInset = bottomInset
             wasImeVisible = imeVisible
@@ -274,6 +277,16 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             .coerceAtLeast(0)
         if (binding.scrollView.scrollY > maxScrollY) {
             binding.scrollView.scrollTo(binding.scrollView.scrollX, maxScrollY)
+        }
+    }
+
+    private fun keepCursorAboveEditorBottom() {
+        val editorBottom = getEditorBottomInWindow()
+        val cursorBottom = getCursorBottomInWindow()
+        val desiredCursorBottom = editorBottom - 2 * getCursorLineHeight()
+        val scrollDelta = cursorBottom - desiredCursorBottom
+        if (scrollDelta > 0) {
+            binding.scrollView.scrollBy(0, scrollDelta)
         }
     }
 
