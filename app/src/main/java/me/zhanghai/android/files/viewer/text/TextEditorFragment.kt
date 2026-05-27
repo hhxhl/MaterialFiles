@@ -236,14 +236,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                     }
                 }
             } else if (wasImeVisible && !imeVisible) {
-                binding.scrollView.post {
+                binding.scrollView.postOnAnimation {
                     clampScrollViewToContent()
                     keepCursorAboveEditorBottom()
                 }
-                binding.scrollView.postDelayed({
-                    clampScrollViewToContent()
-                    keepCursorAboveEditorBottom()
-                }, 100)
             }
             lastBottomInset = bottomInset
             wasImeVisible = imeVisible
