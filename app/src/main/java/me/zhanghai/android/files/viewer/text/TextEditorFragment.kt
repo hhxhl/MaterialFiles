@@ -243,7 +243,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 binding.scrollView.postDelayed({
                     clampScrollViewToContent()
                     keepCursorAboveEditorBottom()
-                }, 80)
+                }, 60)
             }
             lastBottomInset = bottomInset
             wasImeVisible = imeVisible
