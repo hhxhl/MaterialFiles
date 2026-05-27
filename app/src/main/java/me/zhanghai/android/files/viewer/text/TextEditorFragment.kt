@@ -219,19 +219,25 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
             val bottomInset = if (imeVisible) imeBottom else navigationBarsBottom
             val bottomInsetDelta = bottomInset - lastBottomInset
+            val keepCursorDistanceToEditorBottom = imeVisible && bottomInsetDelta > 0
+            val cursorDistanceToEditorBottom = if (keepCursorDistanceToEditorBottom) {
+                getEditorBottomInWindow() - getCursorBottomInWindow()
+            } else {
+                0
+            }
             binding.scrollView.updatePadding(bottom = initialScrollPaddingBottom + bottomInset)
             binding.statusText.updatePadding(bottom = initialStatusPaddingBottom + bottomInset)
-            if (imeVisible && bottomInsetDelta > 0) {
+            if (keepCursorDistanceToEditorBottom) {
                 binding.scrollView.post {
-                    val layout = binding.textEdit.layout ?: return@post
-                    val selection = binding.textEdit.selectionEnd.coerceAtLeast(0)
-                    val line = layout.getLineForOffset(selection)
-                    val cursorBottom = binding.textEdit.top + binding.textEdit.compoundPaddingTop +
-                        layout.getLineBottom(line)
-                    val visibleBottom = binding.scrollView.scrollY + binding.scrollView.height -
-                        binding.scrollView.paddingBottom
-                    if (cursorBottom > visibleBottom) {
-                        binding.scrollView.scrollBy(0, bottomInsetDelta)
+                    val editorBottom = getEditorBottomInWindow()
+                    val cursorBottom = getCursorBottomInWindow()
+                    if (cursorBottom <= editorBottom) {
+                        return@post
+                    }
+                    val desiredCursorBottom = editorBottom - cursorDistanceToEditorBottom
+                    val scrollDelta = cursorBottom - desiredCursorBottom
+                    if (scrollDelta > 0) {
+                        binding.scrollView.scrollBy(0, scrollDelta)
                     }
                 }
             }
@@ -239,6 +245,21 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             insets
         }
         ViewCompat.requestApplyInsets(binding.root)
+    }
+
+    private fun getEditorBottomInWindow(): Int {
+        val location = IntArray(2)
+        binding.statusText.getLocationInWindow(location)
+        return location[1]
+    }
+
+    private fun getCursorBottomInWindow(): Int {
+        val layout = binding.textEdit.layout ?: return 0
+        val selection = binding.textEdit.selectionEnd.coerceAtLeast(0)
+        val line = layout.getLineForOffset(selection)
+        val location = IntArray(2)
+        binding.textEdit.getLocationInWindow(location)
+        return location[1] + binding.textEdit.compoundPaddingTop + layout.getLineBottom(line)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
