@@ -219,6 +219,11 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             object : WindowInsetsAnimationCompat.Callback(
                 WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE
             ) {
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    runningAnimations: MutableList<WindowInsetsAnimationCompat>
+                ): WindowInsetsCompat = insets
+
                 override fun onEnd(animation: WindowInsetsAnimationCompat) {
                     if (!pendingImeHideAdjustment) {
                         return
