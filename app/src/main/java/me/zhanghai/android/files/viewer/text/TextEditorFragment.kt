@@ -219,9 +219,33 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             val bottomInset = if (imeVisible) imeBottom else navigationBarsBottom
             binding.scrollView.updatePadding(bottom = initialScrollPaddingBottom + bottomInset)
             binding.statusText.updatePadding(bottom = initialStatusPaddingBottom + bottomInset)
+            if (imeVisible) {
+                binding.scrollView.post { ensureSelectionVisibleInScrollView() }
+            }
             insets
         }
         ViewCompat.requestApplyInsets(binding.root)
+    }
+
+    private fun ensureSelectionVisibleInScrollView() {
+        val layout = binding.textEdit.layout ?: return
+        val text = binding.textEdit.text ?: return
+        val selection = binding.textEdit.selectionEnd.coerceIn(0, text.length)
+        val line = layout.getLineForOffset(selection)
+        val lineTop = binding.textEdit.top + layout.getLineTop(line)
+        val lineBottom = binding.textEdit.top + layout.getLineBottom(line)
+        val extraPadding = resources.getDimensionPixelSize(R.dimen.screen_edge_margin)
+        val targetTop = lineTop - extraPadding
+        val targetBottom = lineBottom + extraPadding
+        val visibleTop = binding.scrollView.scrollY + binding.scrollView.paddingTop
+        val visibleBottom = (binding.scrollView.scrollY + binding.scrollView.height
+            - binding.scrollView.paddingBottom)
+        val newScrollY = when {
+            targetBottom > visibleBottom -> binding.scrollView.scrollY + targetBottom - visibleBottom
+            targetTop < visibleTop -> binding.scrollView.scrollY - (visibleTop - targetTop)
+            else -> return
+        }.coerceAtLeast(0)
+        binding.scrollView.scrollTo(0, newScrollY)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
