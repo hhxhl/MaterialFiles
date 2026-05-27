@@ -620,20 +620,38 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         if (!this::binding.isInitialized) {
             return
         }
-        val selection = binding.textEdit.selectionStart.coerceAtLeast(0)
-        val layout = binding.textEdit.layout
-        val line: Int
-        val column: Int
-        val editable = binding.textEdit.text
-        if (layout != null && !editable.isNullOrEmpty()) {
-            line = layout.getLineForOffset(selection) + 1
-            column = selection - layout.getLineStart(line - 1) + 1
-        } else {
-            line = 1
-            column = selection + 1
+        val text = binding.textEdit.text?.toString().orEmpty()
+        val selection = binding.textEdit.selectionStart.coerceIn(0, text.length)
+
+        val currentLine = text.countNewLinesBefore(selection) + 1
+        val totalLines = text.countLines()
+        val lineStart = text.lastIndexOf('\n', (selection - 1).coerceAtLeast(0)).let {
+            if (it >= 0 && selection > 0) it + 1 else 0
         }
-        binding.positionText.text = getString(R.string.text_editor_position_format, line, column)
-        binding.encodingText.text = viewModel.encoding.value.displayName
+        val lineEnd = text.indexOf('\n', selection).let { if (it >= 0) it else text.length }
+        val currentColumn = selection - lineStart + 1
+        val totalColumns = lineEnd - lineStart + 1
+
+        binding.positionText.text = "L:$currentLine/$totalLines  C:$currentColumn/$totalColumns"
+        binding.encodingText.text = "${text.detectLineEnding()}  ${viewModel.encoding.value.displayName}"
+    }
+
+    private fun String.countNewLinesBefore(endIndex: Int): Int {
+        var count = 0
+        for (index in 0 until endIndex.coerceIn(0, length)) {
+            if (this[index] == '\n') {
+                ++count
+            }
+        }
+        return count
+    }
+
+    private fun String.countLines(): Int = count { it == '\n' } + 1
+
+    private fun String.detectLineEnding(): String = when {
+        contains("\r\n") -> "CRLF"
+        contains('\r') -> "CR"
+        else -> "LF"
     }
 
     private data class PendingEditOperation(
