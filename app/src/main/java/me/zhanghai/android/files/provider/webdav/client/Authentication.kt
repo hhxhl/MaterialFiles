@@ -42,7 +42,7 @@ data class PasswordAuthentication(
             private val basicDigestAuthHandler = BasicDigestAuthHandler(
                 UrlUtils.hostToDomain(authority.host),
                 authority.username,
-                password
+                password.toCharArray()
             )
 
             override fun authenticate(route: Route?, response: Response): Request? =
