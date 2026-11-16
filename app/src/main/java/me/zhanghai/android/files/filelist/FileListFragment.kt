@@ -130,6 +130,7 @@ import me.zhanghai.android.files.util.valueCompat
 import me.zhanghai.android.files.util.viewModels
 import me.zhanghai.android.files.util.withChooser
 import me.zhanghai.android.files.viewer.image.ImageViewerActivity
+import me.zhanghai.android.files.viewer.text.TextEditorActivity
 import kotlin.math.roundToInt
 
 class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.Listener,
@@ -1266,6 +1267,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             val intent = path.fileProviderUri.createViewIntent(mimeType)
                 .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 .apply {
+                    // Open Markdown files directly in the built-in text editor when tapped.
+                    // Keep the normal chooser behavior for "Open with".
+                    val extension = path.fileName.toString()
+                        .substringAfterLast('.', "").lowercase()
+                    if (!withChooser && (extension == "md" || extension == "markdown")) {
+                        setClass(requireContext(), TextEditorActivity::class.java)
+                    }
                     extraPath = path
                     maybeAddImageViewerActivityExtras(this, path, mimeType)
                 }
