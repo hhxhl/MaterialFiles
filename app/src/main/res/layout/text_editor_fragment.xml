@@ -81,6 +81,27 @@
                 </me.zhanghai.android.files.ui.ScrollingChildEditText>
             </me.zhanghai.android.fastscroll.FastScrollNestedScrollView>
 
+            <!-- An independent preview scroll view keeps the original EditText and its
+                 undo/history/scroll behavior unchanged. It is only shown on demand. -->
+            <me.zhanghai.android.fastscroll.FastScrollNestedScrollView
+                android:id="@+id/markdownScrollView"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:fillViewport="true"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/markdownPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/screen_edge_margin"
+                    android:gravity="top"
+                    android:linksClickable="true"
+                    android:textAppearance="?textAppearanceListItemSecondary" />
+            </me.zhanghai.android.fastscroll.FastScrollNestedScrollView>
+
             <LinearLayout
                 android:id="@+id/statusText"
                 android:layout_width="match_parent"

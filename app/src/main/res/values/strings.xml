@@ -716,6 +716,9 @@
     <string name="text_editor_go_to_line">Go to line</string>
     <string name="text_editor_line_number">Line number</string>
     <string name="text_editor_monospace">Monospace font</string>
+    <string name="text_editor_markdown_preview">Markdown preview</string>
+    <string name="text_editor_markdown_edit">Edit source</string>
+    <string name="text_editor_markdown_loading">Rendering preview…</string>
     <string name="text_editor_status_format">Ln %1$d, Col %2$d    %3$s</string>
     <string name="text_editor_position_format">Ln %1$d, Col %2$d</string>
     <string name="text_editor_not_found">Not found</string>

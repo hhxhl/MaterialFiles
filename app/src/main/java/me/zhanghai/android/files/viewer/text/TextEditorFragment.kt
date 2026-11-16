@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -29,6 +30,9 @@ import androidx.core.view.children
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java8.nio.file.Path
 import kotlinx.coroutines.launch
@@ -64,6 +68,8 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private var isSettingText = false
     private var lastFindText = ""
     private var isMonospace = false
+    private var isMarkdownPreview = false
+    private var markdownPreviewJob: Job? = null
 
     private val undoStack = ArrayDeque<EditOperation>()
     private val redoStack = ArrayDeque<EditOperation>()
@@ -125,6 +131,16 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         // TODO: Move reload-prevent here so that we can also handle save-as, etc. Or maybe just get
         //  rid of the mPathLiveData in TextEditorViewModel.
         ThemedFastScroller.create(binding.scrollView)
+        if (isMarkdownFile()) {
+            ThemedFastScroller.create(binding.markdownScrollView)
+            binding.markdownPreview.movementMethod = LinkMovementMethod.getInstance()
+        }
+        isMarkdownPreview = savedInstanceState?.getBoolean(STATE_MARKDOWN_PREVIEW) == true &&
+            isMarkdownFile()
+        if (isMarkdownPreview) {
+            binding.scrollView.visibility = View.GONE
+            binding.markdownScrollView.visibility = View.VISIBLE
+        }
         setupEditorWindowInsets()
         // Manually save and restore state in view model to avoid TransactionTooLargeException.
         binding.textEdit.isSaveEnabled = false
@@ -297,7 +313,14 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
 
+        outState.putBoolean(STATE_MARKDOWN_PREVIEW, isMarkdownPreview)
         viewModel.setEditTextSavedState(binding.textEdit.onSaveInstanceState())
+    }
+
+    override fun onDestroyView() {
+        markdownPreviewJob?.cancel()
+        markdownPreviewJob = null
+        super.onDestroyView()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -313,6 +336,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         updateUndoRedoMenuItems()
         updateEncodingMenuItems()
         updateMonospaceMenuItem()
+        updateMarkdownMenuItems(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean =
@@ -347,6 +371,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             }
             R.id.action_monospace -> {
                 setMonospace(!isMonospace)
+                true
+            }
+            R.id.action_markdown_preview -> {
+                toggleMarkdownPreview()
                 true
             }
             Menu.FIRST -> {
@@ -399,6 +427,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                     setText(state.data)
                 }
                 updateStatusText()
+                if (isMarkdownPreview) {
+                    renderMarkdownPreview()
+                }
             }
             is DataState.Error -> {
                 state.throwable.printStackTrace()
@@ -686,6 +717,69 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         menuBinding.monospaceItem.isChecked = isMonospace
     }
 
+    // Markdown preview is available only for Markdown files and never edits the source buffer.
+    private fun isMarkdownFile(): Boolean {
+        if (!this::argsFile.isInitialized) return false
+        val fileName = argsFile.fileName.toString()
+        return fileName.endsWith(".md", ignoreCase = true) ||
+            fileName.endsWith(".markdown", ignoreCase = true)
+    }
+
+    private fun toggleMarkdownPreview() {
+        if (!isMarkdownFile()) return
+        isMarkdownPreview = !isMarkdownPreview
+        if (isMarkdownPreview) {
+            ViewCompat.getWindowInsetsController(binding.root)
+                ?.hide(WindowInsetsCompat.Type.ime())
+            binding.textEdit.clearFocus()
+            binding.scrollView.visibility = View.GONE
+            binding.markdownScrollView.visibility = View.VISIBLE
+            renderMarkdownPreview()
+        } else {
+            markdownPreviewJob?.cancel()
+            markdownPreviewJob = null
+            binding.markdownPreview.text = null
+            binding.markdownScrollView.visibility = View.GONE
+            binding.scrollView.visibility = View.VISIBLE
+        }
+        requireActivity().invalidateOptionsMenu()
+    }
+
+    private fun renderMarkdownPreview() {
+        markdownPreviewJob?.cancel()
+        markdownPreviewJob = null
+        if (!isMarkdownPreview || viewModel.textState.value !is DataState.Success) return
+        // Read from EditText, not from disk: unsaved edits must also appear in the preview.
+        val source = binding.textEdit.text?.toString().orEmpty()
+        binding.markdownPreview.setText(R.string.text_editor_markdown_loading)
+        markdownPreviewJob = viewLifecycleOwner.lifecycleScope.launch {
+            val rendered = withContext(Dispatchers.Default) {
+                MarkdownPreviewRenderer.render(source)
+            }
+            if (isMarkdownPreview) {
+                binding.markdownPreview.text = rendered
+                binding.markdownScrollView.scrollTo(0, 0)
+            }
+        }
+    }
+
+    private fun updateMarkdownMenuItems(menu: Menu) {
+        val available = isMarkdownFile()
+        val previewItem = menu.findItem(R.id.action_markdown_preview)
+        previewItem.isVisible = available
+        previewItem.title = getString(
+            if (isMarkdownPreview) R.string.text_editor_markdown_edit
+            else R.string.text_editor_markdown_preview
+        )
+        // The editing tools operate on EditText, so they must not modify hidden text.
+        for (itemId in intArrayOf(
+            R.id.action_undo, R.id.action_redo, R.id.action_find, R.id.action_replace,
+            R.id.action_go_to_line, R.id.action_monospace
+        )) {
+            menu.findItem(itemId).isVisible = !isMarkdownPreview
+        }
+    }
+
     private fun updateStatusText() {
         if (!this::binding.isInitialized) {
             return
@@ -744,6 +838,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     companion object {
         private const val MAX_EDIT_HISTORY_SIZE = 100
+        private const val STATE_MARKDOWN_PREVIEW = "markdown_preview"
     }
 
     @Parcelize

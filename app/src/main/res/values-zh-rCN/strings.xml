@@ -570,6 +570,9 @@
     <string name="text_editor_go_to_line">跳转到行</string>
     <string name="text_editor_line_number">行号</string>
     <string name="text_editor_monospace">等宽字体</string>
+    <string name="text_editor_markdown_preview">Markdown 预览</string>
+    <string name="text_editor_markdown_edit">编辑原文</string>
+    <string name="text_editor_markdown_loading">正在生成预览…</string>
     <string name="text_editor_position_format">第 %1$d 行，第 %2$d 列</string>
     <string name="text_editor_not_found">未找到</string>
     <string name="text_editor_replaced_count_format">已替换 %1$d 处</string>
